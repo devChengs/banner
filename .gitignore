@@ -38,3 +38,4 @@ captures/
 /gradlew.bat
 
 .DS_Store
+*/.DS_Store
