@@ -36,3 +36,5 @@ captures/
 /banner.iml
 /gradlew
 /gradlew.bat
+
+.DS_Store
