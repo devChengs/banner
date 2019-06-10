@@ -5,9 +5,7 @@ import android.animation.ObjectAnimator;
 import android.view.View;
 
 
-/**
- * https://github.com/CymChad/BaseRecyclerViewAdapterHelper
- */
+
 public class SlideInRightAnimation implements BaseAnimation {
     @Override
     public Animator[] getAnimators(View view) {
