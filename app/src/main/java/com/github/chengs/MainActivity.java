@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         list.add("https://gratisography.com/thumbnails/gratisography-urban-bunny-stairwell-thumbnail.jpg");
         Adapter adapter = new Adapter(R.layout.item_image,list);
         adapter.setOnItemChildClickListener(this);
-        recyclerBanner.setAdapter(adapter).setInfinite(true).start();
+        recyclerBanner.setAdapter(adapter).setInfinite(false).setAutoPlaying(true).start();
     }
 
     @Override

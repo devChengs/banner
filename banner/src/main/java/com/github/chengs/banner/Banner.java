@@ -18,27 +18,21 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.github.chengs.banner.adapter.IndicatorAdapter;
 import com.github.chengs.banner.layoutmanager.CarouselLayoutManager;
+import com.github.chengs.banner.layoutmanager.ViewPagerLayoutManager;
 
-/**
- * @Description: java类作用描述
- * @Author: 作者名
- * @CreateDate: 2019/5/14 6:20 PM
- * @UpdateUser: 更新者：
- * @UpdateDate: 2019/5/14 6:20 PM
- * @UpdateRemark: 更新说明：
- * @Version: 1.0
- */
+
 public class Banner extends FrameLayout {
 
     protected RecyclerView mRecyclerView;
 
     private BaseBannerAdapter mAdapter;
 
-    protected LinearLayoutManager mLayoutManager;
+    protected ViewPagerLayoutManager mLayoutManager;
 
     //指示器
     protected RecyclerView mIndicatorContainer;
@@ -91,8 +85,8 @@ public class Banner extends FrameLayout {
         mIsInfinite = typedArray.getBoolean(R.styleable.Banner_infinite, BannerConfig.IS_INFINITE);
         mSelectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorSelectedSrc);
         mUnselectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorUnselectedSrc);
-        mItemSpace = typedArray.getInt(R.styleable.Banner_itemSpace,BannerConfig.ITEM_SPACE);
-        mCenterScale = typedArray.getFloat(R.styleable.Banner_centerScale,BannerConfig.SCALE);
+        mItemSpace = typedArray.getInt(R.styleable.Banner_itemSpace, BannerConfig.ITEM_SPACE);
+        mCenterScale = typedArray.getFloat(R.styleable.Banner_centerScale, BannerConfig.SCALE);
         if (mSelectedDrawable == null) {
             //绘制默认选中状态图形
             GradientDrawable selectedGradientDrawable = new GradientDrawable();
@@ -136,8 +130,24 @@ public class Banner extends FrameLayout {
         //recyclerView部分
         mRecyclerView = new RecyclerView(context);
         new PagerSnapHelper().attachToRecyclerView(mRecyclerView);
-        mLayoutManager = getLayoutManager(context,mItemSpace, orientation);
+        mLayoutManager = (ViewPagerLayoutManager) getLayoutManager(context, mItemSpace, orientation);
         mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                mCurrentIndex = mLayoutManager.getCurrentPosition();
+                refreshIndicator();
+                onBannerScrolled(recyclerView, dx, dy);
+            }
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                mCurrentIndex = mLayoutManager.getCurrentPosition();
+                refreshIndicator();
+                onBannerScrollStateChanged(recyclerView, newState);
+            }
+        });
         LayoutParams vpLayoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         addView(mRecyclerView, vpLayoutParams);
@@ -171,13 +181,12 @@ public class Banner extends FrameLayout {
     });
 
 
-
     /**
      * 设置播放间隔时间
      *
      * @param autoPlayDuration
      */
-    public Banner setInterval(int autoPlayDuration){
+    public Banner setInterval(int autoPlayDuration) {
         mAutoPlayDuration = autoPlayDuration;
         return this;
     }
@@ -218,9 +227,6 @@ public class Banner extends FrameLayout {
         mIndicatorAdapter.setData(mSelectedDrawable, mUnselectedDrawable, mIndicatorMargin, mBannerSize);
         mAdapter.setInfinite(mIsInfinite);
         mRecyclerView.setAdapter(mAdapter);
-        if (mIsInfinite){
-            mRecyclerView.scrollToPosition(Integer.MAX_VALUE/ mBannerSize +1);
-        }
         mIsStart = true;
         setPlaying(true);
     }
@@ -242,7 +248,6 @@ public class Banner extends FrameLayout {
             }
         }
     }
-
 
 
     protected void onBannerScrolled(RecyclerView recyclerView, int dx, int dy) {
@@ -324,13 +329,13 @@ public class Banner extends FrameLayout {
      */
     protected synchronized void refreshIndicator() {
         if (mIsShowIndicator && mBannerSize > 1) {
-            mIndicatorAdapter.setPosition(mCurrentIndex % mBannerSize);
+            mIndicatorAdapter.setPosition(mCurrentIndex);
             mIndicatorAdapter.notifyDataSetChanged();
         }
     }
 
-    public LinearLayoutManager getLayoutManager(Context context,int itemSpace, int orientation) {
-        CarouselLayoutManager manager = new CarouselLayoutManager(context, itemSpace,orientation);
+    public LinearLayoutManager getLayoutManager(Context context, int itemSpace, int orientation) {
+        CarouselLayoutManager manager = new CarouselLayoutManager(context, itemSpace, orientation);
         manager.setMinScale(mCenterScale);
         manager.setInfinite(mIsInfinite);
         return manager;
