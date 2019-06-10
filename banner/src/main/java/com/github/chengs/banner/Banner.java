@@ -18,11 +18,10 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.github.chengs.banner.adapter.IndicatorAdapter;
-import com.github.chengs.banner.layoutmanager.BannerLayoutManager;
+import com.github.chengs.banner.layoutmanager.CarouselLayoutManager;
 
 /**
  * @Description: java类作用描述
@@ -64,6 +63,10 @@ public class Banner extends FrameLayout {
     protected int mCurrentIndex;
     protected boolean mIsPlaying;
 
+    protected int mItemSpace;
+
+    protected float mCenterScale;
+
     protected boolean mIsAutoPlaying;
 
     private boolean mIsStart = false;
@@ -88,6 +91,8 @@ public class Banner extends FrameLayout {
         mIsInfinite = typedArray.getBoolean(R.styleable.Banner_infinite, BannerConfig.IS_INFINITE);
         mSelectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorSelectedSrc);
         mUnselectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorUnselectedSrc);
+        mItemSpace = typedArray.getInt(R.styleable.Banner_itemSpace,BannerConfig.ITEM_SPACE);
+        mCenterScale = typedArray.getFloat(R.styleable.Banner_centerScale,BannerConfig.SCALE);
         if (mSelectedDrawable == null) {
             //绘制默认选中状态图形
             GradientDrawable selectedGradientDrawable = new GradientDrawable();
@@ -131,46 +136,8 @@ public class Banner extends FrameLayout {
         //recyclerView部分
         mRecyclerView = new RecyclerView(context);
         new PagerSnapHelper().attachToRecyclerView(mRecyclerView);
-//        new CenterSnapHelper().attachToRecyclerView(mRecyclerView);
-        mLayoutManager = getLayoutManager(context, orientation);
+        mLayoutManager = getLayoutManager(context,mItemSpace, orientation);
         mRecyclerView.setLayoutManager(mLayoutManager);
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                if (mBannerSize < 2) return;
-                int firstReal = mLayoutManager.findFirstVisibleItemPosition();
-                View viewFirst = mLayoutManager.findViewByPosition(firstReal);
-                float width = getWidth();
-                if (width != 0 && viewFirst != null) {
-                    float right = viewFirst.getRight();
-                    float ratio = right / width;
-                    if (ratio > 0.8) {
-                        if (mCurrentIndex != firstReal) {
-                            mCurrentIndex = firstReal;
-                            refreshIndicator();
-                        }
-                    } else if (ratio < 0.2) {
-                        if (mCurrentIndex != firstReal + 1) {
-                            mCurrentIndex = firstReal + 1;
-                            refreshIndicator();
-                        }
-                    }
-                }
-                onBannerScrolled(recyclerView, dx, dy);
-            }
-
-            @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                int first = mLayoutManager.findFirstVisibleItemPosition();
-                int last = mLayoutManager.findLastVisibleItemPosition();
-                if (mCurrentIndex != first && first == last) {
-                    mCurrentIndex = first;
-                    refreshIndicator();
-                }
-                onBannerScrollStateChanged(recyclerView, newState);
-            }
-        });
         LayoutParams vpLayoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         addView(mRecyclerView, vpLayoutParams);
@@ -362,8 +329,11 @@ public class Banner extends FrameLayout {
         }
     }
 
-    public LinearLayoutManager getLayoutManager(Context context, int orientation) {
-        return new BannerLayoutManager(context, orientation, false);
+    public LinearLayoutManager getLayoutManager(Context context,int itemSpace, int orientation) {
+        CarouselLayoutManager manager = new CarouselLayoutManager(context, itemSpace,orientation);
+        manager.setMinScale(mCenterScale);
+        manager.setInfinite(mIsInfinite);
+        return manager;
     }
 
     protected int dp2px(int dp) {

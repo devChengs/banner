@@ -1,17 +1,19 @@
 package com.github.chengs.banner.layoutmanager;
 
 import android.content.Context;
-import android.graphics.PointF;
-import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.LinearSmoothScroller;
-import android.support.v7.widget.OrientationHelper;
 import android.support.v7.widget.RecyclerView;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Interpolator;
+import com.github.chengs.banner.helper.OrientationHelper;
+
+import java.util.ArrayList;
+
+import static android.support.v7.widget.RecyclerView.NO_POSITION;
 
 /**
  * An implementation of {@link RecyclerView.LayoutManager} which behaves like view pager.
@@ -19,45 +21,27 @@ import android.view.ViewGroup;
  */
 
 @SuppressWarnings({"WeakerAccess", "unused", "SameParameterValue"})
-public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
-        implements RecyclerView.SmoothScroller.ScrollVectorProvider {
-    private float minScale = 0.75f;//两侧图片缩放比
-    private float angle = 8f;//翻转角度
-    private int itemSpace = 385;
-    private boolean mInfinite = true;
+public abstract class ViewPagerLayoutManager extends LinearLayoutManager {
+
     public static final int DETERMINE_BY_MAX_AND_MIN = -1;
 
     public static final int HORIZONTAL = OrientationHelper.HORIZONTAL;
 
     public static final int VERTICAL = OrientationHelper.VERTICAL;
 
+    private static final int DIRECTION_NO_WHERE = -1;
+
+    private static final int DIRECTION_FORWARD = 0;
+
+    private static final int DIRECTION_BACKWARD = 1;
+
+    protected static final int INVALID_SIZE = Integer.MAX_VALUE;
+
+    private SparseArray<View> positionCache = new SparseArray<>();
+
     protected int mDecoratedMeasurement;
 
     protected int mDecoratedMeasurementInOther;
-
-    public float getMinScale() {
-        return minScale;
-    }
-
-    public void setMinScale(float minScale) {
-        this.minScale = minScale;
-    }
-
-    public float getAngle() {
-        return angle;
-    }
-
-    public void setAngle(float angle) {
-        this.angle = angle;
-    }
-
-    public int getItemSpace() {
-        return itemSpace;
-    }
-
-    public void setItemSpace(int itemSpace) {
-        this.itemSpace = itemSpace;
-    }
 
     /**
      * Current orientation. Either {@link #HORIZONTAL} or {@link #VERTICAL}
@@ -87,6 +71,13 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     private boolean mReverseLayout = false;
 
     /**
+     * This keeps the final value for how LayoutManager should start laying out views.
+     * It is calculated by checking {@link #getReverseLayout()} and View's layout direction.
+     * {@link #onLayoutChildren(RecyclerView.Recycler, RecyclerView.State)} is run.
+     */
+    private boolean mShouldReverseLayout = false;
+
+    /**
      * Works the same way as {@link android.widget.AbsListView#setSmoothScrollbarEnabled(boolean)}.
      * see {@link android.widget.AbsListView#setSmoothScrollbarEnabled(boolean)}
      */
@@ -96,7 +87,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
      * When LayoutManager needs to scroll to a position, it sets this variable and requests a
      * layout which will check this variable and re-layout accordingly.
      */
-    private int mPendingScrollPosition = RecyclerView.NO_POSITION;
+    private int mPendingScrollPosition = NO_POSITION;
 
     private SavedState mPendingSavedState = null;
 
@@ -106,13 +97,9 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
 
     private boolean mRecycleChildrenOnDetach;
 
+    private boolean mInfinite = false;
 
     private boolean mEnableBringCenterToFront;
-
-    /**
-     * ugly code for fix bug caused by float
-     */
-    private boolean mIntegerDy = false;
 
     private int mLeftItems;
 
@@ -123,36 +110,21 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
      */
     private int mMaxVisibleItemCount = DETERMINE_BY_MAX_AND_MIN;
 
+    private Interpolator mSmoothScrollInterpolator;
+
+    private int mDistanceToBottom = INVALID_SIZE;
+
+    /**
+     * use for handle focus
+     */
+    private View currentFocusView;
+
     /**
      * @return the mInterval of each item's mOffset
      */
-    protected float setInterval() {
-        return mDecoratedMeasurement - itemSpace;
-    }
+    protected abstract float setInterval();
 
-    protected void setItemViewProperty(View itemView, float targetOffset) {
-        float scale = calculateScale(targetOffset + mSpaceMain);
-        itemView.setScaleX(scale);
-        itemView.setScaleY(scale);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            itemView.setElevation(0);
-        }
-        final float rotation = calRotation(targetOffset);
-        if (getOrientation() == HORIZONTAL) {
-            itemView.setRotationY(rotation);
-        } else {
-            itemView.setRotationX(-rotation);
-        }
-    }
-
-    private float calRotation(float targetOffset) {
-        return -angle / mInterval * targetOffset;
-    }
-
-    private float calculateScale(float x) {
-        float deltaX = Math.abs(x - (mOrientationHelper.getTotalSpace() - mDecoratedMeasurement) / 2f);
-        return (minScale - 1) * deltaX / (mOrientationHelper.getTotalSpace() / 2f) + 1f;
-    }
+    protected abstract void setItemViewProperty(View itemView, float targetOffset);
 
     /**
      * cause elevation is not support below api 21,
@@ -160,33 +132,26 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
      * or you can just setElevation in {@link #setItemViewProperty(View, float)}
      */
     protected float setViewElevation(View itemView, float targetOffset) {
-        return itemView.getScaleX() * 5;
+        return 0;
     }
 
     /**
      * Creates a horizontal ViewPagerLayoutManager
      */
-    public OverFlyingLayoutManager(Context context) {
-        this(HORIZONTAL, false);
+    public ViewPagerLayoutManager(Context context) {
+        this(context, HORIZONTAL, false);
     }
 
     /**
      * @param orientation   Layout orientation. Should be {@link #HORIZONTAL} or {@link #VERTICAL}
      * @param reverseLayout When set to true, layouts from end to start
      */
-    public OverFlyingLayoutManager(int orientation, boolean reverseLayout) {
+    public ViewPagerLayoutManager(Context context, int orientation, boolean reverseLayout) {
+        super(context);
         setOrientation(orientation);
         setReverseLayout(reverseLayout);
         setAutoMeasureEnabled(true);
-        setEnableBringCenterToFront(true);
-        setIntegerDy(true);
-    }
-
-    public OverFlyingLayoutManager(float minScale, int itemSpace, int orientation) {
-        this(orientation, false);
-        this.minScale = minScale;
-        this.itemSpace = itemSpace;
-        mOrientation = orientation;
+        setItemPrefetchEnabled(false);
     }
 
     @Override
@@ -240,7 +205,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         SavedState savedState = new SavedState();
         savedState.position = mPendingScrollPosition;
         savedState.offset = mOffset;
-        savedState.isReverseLayout = mReverseLayout;
+        savedState.isReverseLayout = mShouldReverseLayout;
         return savedState;
     }
 
@@ -279,6 +244,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     }
 
     /**
+     * Sets the orientation of the layout. {@link ViewPagerLayoutManager}
      * will do its best to keep scroll position.
      *
      * @param orientation {@link #HORIZONTAL} or {@link #VERTICAL}
@@ -293,6 +259,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         }
         mOrientation = orientation;
         mOrientationHelper = null;
+        mDistanceToBottom = INVALID_SIZE;
         removeAllViews();
     }
 
@@ -320,27 +287,16 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     }
 
     /**
-     * see {@link #mIntegerDy}
-     */
-    public boolean isIntegerDy() {
-        return mIntegerDy;
-    }
-
-    /**
-     * see {@link #mIntegerDy}
-     */
-    public void setIntegerDy(boolean mIntegerDy) {
-        this.mIntegerDy = mIntegerDy;
-    }
-
-    /**
      * Calculates the view layout order. (e.g. from end to start or start to end)
      * RTL layout support is applied automatically. So if layout is RTL and
      * {@link #getReverseLayout()} is {@code true}, elements will be laid out starting from left.
      */
     private void resolveShouldLayoutReverse() {
-        if (mOrientation == HORIZONTAL && getLayoutDirection() == ViewCompat.LAYOUT_DIRECTION_RTL) {
-            mReverseLayout = !mReverseLayout;
+        // A == B is the same result, but we rather keep it readable
+        if (mOrientation == VERTICAL || !isLayoutRTL()) {
+            mShouldReverseLayout = mReverseLayout;
+        } else {
+            mShouldReverseLayout = !mReverseLayout;
         }
     }
 
@@ -373,24 +329,38 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         removeAllViews();
     }
 
-    @Override
-    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state, int position) {
-        LinearSmoothScroller linearSmoothScroller = new LinearSmoothScroller(recyclerView.getContext());
-        linearSmoothScroller.setTargetPosition(position);
-        startSmoothScroll(linearSmoothScroller);
+    public void setSmoothScrollInterpolator(Interpolator smoothScrollInterpolator) {
+        this.mSmoothScrollInterpolator = smoothScrollInterpolator;
     }
 
-    public PointF computeScrollVectorForPosition(int targetPosition) {
-        if (getChildCount() == 0) {
-            return null;
-        }
-        final int firstChildPos = getPosition(getChildAt(0));
-        final float direction = targetPosition < firstChildPos == !mReverseLayout ?
-                -1 / getDistanceRatio() : 1 / getDistanceRatio();
-        if (mOrientation == HORIZONTAL) {
-            return new PointF(direction, 0);
+    @Override
+    public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state, int position) {
+        final int offsetPosition;
+
+        // fix wrong scroll direction when infinite enable
+        if (mInfinite) {
+            final int currentPosition = getCurrentPosition();
+            final int total = getItemCount();
+            final int targetPosition;
+            if (position < currentPosition) {
+                int d1 = currentPosition - position;
+                int d2 = total - currentPosition + position;
+                targetPosition = d1 < d2 ? (currentPosition - d1) : (currentPosition + d2);
+            } else {
+                int d1 = position - currentPosition;
+                int d2 = currentPosition + total - position;
+                targetPosition = d1 < d2 ? (currentPosition + d1) : (currentPosition - d2);
+            }
+
+            offsetPosition = getOffsetToPosition(targetPosition);
         } else {
-            return new PointF(0, direction);
+            offsetPosition = getOffsetToPosition(position);
+        }
+
+        if (mOrientation == VERTICAL) {
+            recyclerView.smoothScrollBy(0, offsetPosition, mSmoothScrollInterpolator);
+        } else {
+            recyclerView.smoothScrollBy(offsetPosition, 0, mSmoothScrollInterpolator);
         }
     }
 
@@ -406,39 +376,53 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         resolveShouldLayoutReverse();
 
         //make sure properties are correct while measure more than once
-        View scrap = recycler.getViewForPosition(0);
+        View scrap = getMeasureView(recycler, state, 0);
+        if (scrap == null) {
+            removeAndRecycleAllViews(recycler);
+            mOffset = 0;
+            return;
+        }
+
         measureChildWithMargins(scrap, 0, 0);
         mDecoratedMeasurement = mOrientationHelper.getDecoratedMeasurement(scrap);
         mDecoratedMeasurementInOther = mOrientationHelper.getDecoratedMeasurementInOther(scrap);
         mSpaceMain = (mOrientationHelper.getTotalSpace() - mDecoratedMeasurement) / 2;
-        mSpaceInOther = (getTotalSpaceInOther() - mDecoratedMeasurementInOther) / 2;
+        if (mDistanceToBottom == INVALID_SIZE) {
+            mSpaceInOther = (mOrientationHelper.getTotalSpaceInOther() - mDecoratedMeasurementInOther) / 2;
+        } else {
+            mSpaceInOther = mOrientationHelper.getTotalSpaceInOther() - mDecoratedMeasurementInOther - mDistanceToBottom;
+        }
+
         mInterval = setInterval();
         setUp();
-        mLeftItems = (int) Math.abs(minRemoveOffset() / mInterval) + 1;
-        mRightItems = (int) Math.abs(maxRemoveOffset() / mInterval) + 1;
+        if (mInterval == 0) {
+            mLeftItems = 1;
+            mRightItems = 1;
+        } else {
+            mLeftItems = (int) Math.abs(minRemoveOffset() / mInterval) + 1;
+            mRightItems = (int) Math.abs(maxRemoveOffset() / mInterval) + 1;
+        }
 
         if (mPendingSavedState != null) {
-            mReverseLayout = mPendingSavedState.isReverseLayout;
+            mShouldReverseLayout = mPendingSavedState.isReverseLayout;
             mPendingScrollPosition = mPendingSavedState.position;
             mOffset = mPendingSavedState.offset;
         }
 
-        if (mPendingScrollPosition != RecyclerView.NO_POSITION) {
-            mOffset = mReverseLayout ?
+        if (mPendingScrollPosition != NO_POSITION) {
+            mOffset = mShouldReverseLayout ?
                     mPendingScrollPosition * -mInterval : mPendingScrollPosition * mInterval;
         }
 
-        detachAndScrapAttachedViews(recycler);
         layoutItems(recycler);
     }
 
-    public int getTotalSpaceInOther() {
-        if (mOrientation == HORIZONTAL) {
-            return getHeight() - getPaddingTop()
-                    - getPaddingBottom();
-        } else {
-            return getWidth() - getPaddingLeft()
-                    - getPaddingRight();
+    private View getMeasureView(RecyclerView.Recycler recycler, RecyclerView.State state, int index) {
+        if (index >= state.getItemCount() || index < 0) return null;
+        try {
+            return recycler.getViewForPosition(index);
+        } catch (Exception e) {
+            return getMeasureView(recycler, state, index + 1);
         }
     }
 
@@ -446,7 +430,50 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     public void onLayoutCompleted(RecyclerView.State state) {
         super.onLayoutCompleted(state);
         mPendingSavedState = null;
-        mPendingScrollPosition = RecyclerView.NO_POSITION;
+        mPendingScrollPosition = NO_POSITION;
+    }
+
+    @Override
+    public boolean onAddFocusables(RecyclerView recyclerView, ArrayList<View> views, int direction, int focusableMode) {
+        final int currentPosition = getCurrentPosition();
+        final View currentView = findViewByPosition(currentPosition);
+        if (currentView == null) return true;
+        if (recyclerView.hasFocus()) {
+            final int movement = getMovement(direction);
+            if (movement != DIRECTION_NO_WHERE) {
+                final int targetPosition = movement == DIRECTION_BACKWARD ?
+                        currentPosition - 1 : currentPosition + 1;
+                ScrollHelper.smoothScrollToPosition(recyclerView, this, targetPosition);
+            }
+        } else {
+            currentView.addFocusables(views, direction, focusableMode);
+        }
+        return true;
+    }
+
+    @Override
+    public View onFocusSearchFailed(View focused, int focusDirection, RecyclerView.Recycler recycler, RecyclerView.State state) {
+        return null;
+    }
+
+    private int getMovement(int direction) {
+        if (mOrientation == VERTICAL) {
+            if (direction == View.FOCUS_UP) {
+                return mShouldReverseLayout ? DIRECTION_FORWARD : DIRECTION_BACKWARD;
+            } else if (direction == View.FOCUS_DOWN) {
+                return mShouldReverseLayout ? DIRECTION_BACKWARD : DIRECTION_FORWARD;
+            } else {
+                return DIRECTION_NO_WHERE;
+            }
+        } else {
+            if (direction == View.FOCUS_LEFT) {
+                return mShouldReverseLayout ? DIRECTION_FORWARD : DIRECTION_BACKWARD;
+            } else if (direction == View.FOCUS_RIGHT) {
+                return mShouldReverseLayout ? DIRECTION_BACKWARD : DIRECTION_FORWARD;
+            } else {
+                return DIRECTION_NO_WHERE;
+            }
+        }
     }
 
     void ensureLayoutState() {
@@ -463,7 +490,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     }
 
     private float getProperty(int position) {
-        return mReverseLayout ? position * -mInterval : position * mInterval;
+        return mShouldReverseLayout ? position * -mInterval : position * mInterval;
     }
 
     @Override
@@ -474,8 +501,9 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
 
     @Override
     public void scrollToPosition(int position) {
+        if (!mInfinite && (position < 0 || position >= getItemCount())) return;
         mPendingScrollPosition = position;
-        mOffset = mReverseLayout ? position * -mInterval : position * mInterval;
+        mOffset = mShouldReverseLayout ? position * -mInterval : position * mInterval;
         requestLayout();
     }
 
@@ -515,12 +543,12 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         }
 
         if (!mSmoothScrollbarEnabled) {
-            return !mReverseLayout ?
+            return !mShouldReverseLayout ?
                     getCurrentPosition() : getItemCount() - getCurrentPosition() - 1;
         }
 
         final float realOffset = getOffsetOfRightAdapterPosition();
-        return !mReverseLayout ? (int) realOffset : (int) ((getItemCount() - 1) * mInterval + realOffset);
+        return !mShouldReverseLayout ? (int) realOffset : (int) ((getItemCount() - 1) * mInterval + realOffset);
     }
 
     private int computeScrollExtent() {
@@ -583,20 +611,9 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
             willScroll = (int) ((getMaxOffset() - mOffset) * getDistanceRatio());
         }
 
-        if (mIntegerDy) {
-            realDx = (int) (willScroll / getDistanceRatio());
-        } else {
-            realDx = willScroll / getDistanceRatio();
-        }
+        realDx = willScroll / getDistanceRatio();
 
         mOffset += realDx;
-
-        // we re-layout all current views in the right place
-        for (int i = 0; i < getChildCount(); i++) {
-            final View scrap = getChildAt(i);
-            final float delta = propertyChangeWhenScroll(scrap) - realDx;
-            layoutScrap(scrap, delta);
-        }
 
         //handle recycle
         layoutItems(recycler);
@@ -606,9 +623,13 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
 
     private void layoutItems(RecyclerView.Recycler recycler) {
         detachAndScrapAttachedViews(recycler);
+        positionCache.clear();
+
+        final int itemCount = getItemCount();
+        if (itemCount == 0) return;
 
         // make sure that current position start from 0 to 1
-        final int currentPos = mReverseLayout ?
+        final int currentPos = mShouldReverseLayout ?
                 -getCurrentPositionOffset() : getCurrentPositionOffset();
         int start = currentPos - mLeftItems;
         int end = currentPos + mRightItems;
@@ -627,7 +648,6 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
             }
         }
 
-        final int itemCount = getItemCount();
         if (!mInfinite) {
             if (start < 0) {
                 start = 0;
@@ -662,9 +682,13 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
                 } else {
                     addView(scrap, 0);
                 }
+                if (i == currentPos) currentFocusView = scrap;
                 lastOrderWeight = orderWeight;
+                positionCache.put(i, scrap);
             }
         }
+
+        currentFocusView.requestFocus();
     }
 
     private boolean useMaxVisibleCount() {
@@ -684,12 +708,12 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         v.setAlpha(1f);
     }
 
-    private float getMaxOffset() {
-        return !mReverseLayout ? (getItemCount() - 1) * mInterval : 0;
+    /* package */ float getMaxOffset() {
+        return !mShouldReverseLayout ? (getItemCount() - 1) * mInterval : 0;
     }
 
-    private float getMinOffset() {
-        return !mReverseLayout ? 0 : -(getItemCount() - 1) * mInterval;
+    /* package */ float getMinOffset() {
+        return !mShouldReverseLayout ? 0 : -(getItemCount() - 1) * mInterval;
     }
 
     private void layoutScrap(View scrap, float targetOffset) {
@@ -729,20 +753,17 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
         return -mDecoratedMeasurement - mOrientationHelper.getStartAfterPadding() - mSpaceMain;
     }
 
-    protected float propertyChangeWhenScroll(View itemView) {
-        if (mOrientation == VERTICAL)
-            return itemView.getTop() - mSpaceMain;
-        return itemView.getLeft() - mSpaceMain;
-    }
-
     protected float getDistanceRatio() {
-        return 1;
+        return 1f;
     }
 
     public int getCurrentPosition() {
+        if (getItemCount() == 0) return 0;
+
         int position = getCurrentPositionOffset();
         if (!mInfinite) return Math.abs(position);
-        position = !mReverseLayout ?
+
+        position = !mShouldReverseLayout ?
                 //take care of position = getItemCount()
                 (position >= 0 ?
                         position % getItemCount() :
@@ -750,10 +771,37 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
                 (position > 0 ?
                         getItemCount() - position % getItemCount() :
                         -position % getItemCount());
-        return position;
+        return position == getItemCount() ? 0 : position;
     }
 
-    private int getCurrentPositionOffset() {
+    @Override
+    public View findViewByPosition(int position) {
+        final int itemCount = getItemCount();
+        if (itemCount == 0) return null;
+        for (int i = 0; i < positionCache.size(); i++) {
+            final int key = positionCache.keyAt(i);
+            if (key >= 0) {
+                if (position == key % itemCount) return positionCache.valueAt(i);
+            } else {
+                int delta = key % itemCount;
+                if (delta == 0) delta = -itemCount;
+                if (itemCount + delta == position) return positionCache.valueAt(i);
+            }
+        }
+        return null;
+    }
+
+    public int getLayoutPositionOfView(View v) {
+        for (int i = 0; i < positionCache.size(); i++) {
+            int key = positionCache.keyAt(i);
+            View value = positionCache.get(key);
+            if (value == v) return key;
+        }
+        return -1;
+    }
+
+    /* package */ int getCurrentPositionOffset() {
+        if (mInterval == 0) return 0;
         return Math.round(mOffset / mInterval);
     }
 
@@ -762,7 +810,7 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
      * cause when {@link #mInfinite} is set true, there will be no limitation of {@link #mOffset}
      */
     private float getOffsetOfRightAdapterPosition() {
-        if (mReverseLayout)
+        if (mShouldReverseLayout)
             return mInfinite ?
                     (mOffset <= 0 ?
                             (mOffset % (mInterval * getItemCount())) :
@@ -777,13 +825,24 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
     }
 
     /**
+     * used by {@link CenterSnapHelper} to center the current view
+     *
      * @return the dy between center and current position
      */
     public int getOffsetToCenter() {
         if (mInfinite)
             return (int) ((getCurrentPositionOffset() * mInterval - mOffset) * getDistanceRatio());
         return (int) ((getCurrentPosition() *
-                (!mReverseLayout ? mInterval : -mInterval) - mOffset) * getDistanceRatio());
+                (!mShouldReverseLayout ? mInterval : -mInterval) - mOffset) * getDistanceRatio());
+    }
+
+    public int getOffsetToPosition(int position) {
+        if (mInfinite)
+            return (int) (((getCurrentPositionOffset() +
+                    (!mShouldReverseLayout ? position - getCurrentPositionOffset() : -getCurrentPositionOffset() - position)) *
+                    mInterval - mOffset) * getDistanceRatio());
+        return (int) ((position *
+                (!mShouldReverseLayout ? mInterval : -mInterval) - mOffset) * getDistanceRatio());
     }
 
     public void setOnPageChangeListener(OnPageChangeListener onPageChangeListener) {
@@ -801,6 +860,18 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
 
     public boolean getInfinite() {
         return mInfinite;
+    }
+
+    public int getDistanceToBottom() {
+        return mDistanceToBottom == INVALID_SIZE ?
+                (mOrientationHelper.getTotalSpaceInOther() - mDecoratedMeasurementInOther) / 2 : mDistanceToBottom;
+    }
+
+    public void setDistanceToBottom(int mDistanceToBottom) {
+        assertNotInLayoutOrScroll(null);
+        if (this.mDistanceToBottom == mDistanceToBottom) return;
+        this.mDistanceToBottom = mDistanceToBottom;
+        removeAllViews();
     }
 
     /**
@@ -879,8 +950,8 @@ public class OverFlyingLayoutManager extends RecyclerView.LayoutManager
             dest.writeInt(isReverseLayout ? 1 : 0);
         }
 
-        public static final Creator<SavedState> CREATOR
-                = new Creator<SavedState>() {
+        public static final Parcelable.Creator<SavedState> CREATOR
+                = new Parcelable.Creator<SavedState>() {
             @Override
             public SavedState createFromParcel(Parcel in) {
                 return new SavedState(in);
