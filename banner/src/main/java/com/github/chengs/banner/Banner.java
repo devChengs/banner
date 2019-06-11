@@ -148,7 +148,7 @@ public class Banner extends FrameLayout {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 mCurrentIndex = mLayoutManager.getCurrentPosition();
-                Log.d("chengs","-----------"+mCurrentIndex);
+                Log.d("chengs", "-----------" + mCurrentIndex);
                 refreshIndicator();
                 onBannerScrolled(recyclerView, dx, dy);
             }
@@ -184,7 +184,12 @@ public class Banner extends FrameLayout {
         public boolean handleMessage(Message msg) {
             if (msg.what == WHAT_AUTO_PLAY) {
                 mCurrentIndex = mLayoutManager.getCurrentPosition();
-                mLayoutManager.scrollToPosition(++mCurrentIndex);
+                if (mCurrentIndex == mBannerSize - 1) {
+                    mCurrentIndex = 0;
+                    mLayoutManager.scrollToPosition(++mCurrentIndex);
+                } else {
+                    mLayoutManager.scrollToPosition(++mCurrentIndex);
+                }
                 refreshIndicator();
                 mHandler.sendEmptyMessageDelayed(WHAT_AUTO_PLAY, mAutoPlayDuration);
 
@@ -286,7 +291,6 @@ public class Banner extends FrameLayout {
         }
         mBannerSize = mAdapter.mData.size();
         mIndicatorAdapter.setData(mSelectedDrawable, mUnselectedDrawable, mIndicatorMargin, mBannerSize);
-        mAdapter.setInfinite(mIsInfinite);
         mRecyclerView.setAdapter(mAdapter);
         mIsStart = true;
         setPlaying(true);

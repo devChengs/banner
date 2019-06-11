@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         Adapter adapter = new Adapter(R.layout.item_image,list);
         adapter.setOnItemChildClickListener(this);
         recyclerBanner.setAdapter(adapter)
-                .setInfinite(true).setItemSpace(80).setMinScale(0.8f).setAutoPlaying(true).start();
+                .setInfinite(true).setItemSpace(80).setMinScale(0.8f).setAutoPlaying(false).start();
     }
 
     @Override
