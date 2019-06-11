@@ -67,7 +67,6 @@ public abstract class BaseBannerAdapter<T, K extends BaseViewHolder> extends Rec
     private boolean mOpenAnimationEnable = false;
     private Interpolator mInterpolator = new LinearInterpolator();
     private int mDuration = 300;
-    private boolean mIsInfinite = false;
     private int mLastPosition = -1;
 
     private BaseAnimation mCustomAnimation;
@@ -136,15 +135,6 @@ public abstract class BaseBannerAdapter<T, K extends BaseViewHolder> extends Rec
         mLastPosition = count;
     }
 
-
-    /**
-     * Sets the Infinite of the recyclerView.
-     *
-     * @param isInfinite The length of the animation, in milliseconds.
-     */
-    public void setInfinite(boolean isInfinite) {
-        mIsInfinite = isInfinite;
-    }
 
     /**
      * Sets the duration of the animation.
@@ -323,9 +313,6 @@ public abstract class BaseBannerAdapter<T, K extends BaseViewHolder> extends Rec
 
     @Override
     public int getItemCount() {
-        if (mIsInfinite){
-            return Integer.MAX_VALUE;
-        }
         return mData.size();
     }
 
