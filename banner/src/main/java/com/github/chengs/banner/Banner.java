@@ -148,7 +148,6 @@ public class Banner extends FrameLayout {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 mCurrentIndex = mLayoutManager.getCurrentPosition();
-                Log.d("chengs", "-----------" + mCurrentIndex);
                 refreshIndicator();
                 onBannerScrolled(recyclerView, dx, dy);
             }
