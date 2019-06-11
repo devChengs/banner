@@ -186,7 +186,7 @@ public class Banner extends FrameLayout {
                 mCurrentIndex = mLayoutManager.getCurrentPosition();
                 if (mCurrentIndex == mBannerSize - 1) {
                     mCurrentIndex = 0;
-                    mLayoutManager.scrollToPosition(++mCurrentIndex);
+                    mLayoutManager.scrollToPosition(mCurrentIndex);
                 } else {
                     mLayoutManager.scrollToPosition(++mCurrentIndex);
                 }
@@ -394,7 +394,7 @@ public class Banner extends FrameLayout {
      */
     protected synchronized void refreshIndicator() {
         if (mIsShowIndicator && mBannerSize > 1) {
-            mIndicatorAdapter.setPosition(mCurrentIndex % mBannerSize);
+            mIndicatorAdapter.setPosition(mCurrentIndex);
             mIndicatorAdapter.notifyDataSetChanged();
         }
     }
