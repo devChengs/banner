@@ -7,8 +7,10 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.RequiresApi;
 import android.support.v4.view.GravityCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PagerSnapHelper;
@@ -18,14 +20,17 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 import com.github.chengs.banner.adapter.IndicatorAdapter;
 import com.github.chengs.banner.layoutmanager.CarouselLayoutManager;
 import com.github.chengs.banner.layoutmanager.ViewPagerLayoutManager;
 
-
+/**
+ * Created by Cs on 2019-05-11 .
+ */
+@RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
 public class Banner extends FrameLayout {
 
     protected RecyclerView mRecyclerView;
@@ -59,7 +64,11 @@ public class Banner extends FrameLayout {
 
     protected int mItemSpace;
 
-    protected float mCenterScale;
+    protected int mMaxVisibleItemCount;
+
+    protected float mMinScale;
+
+    protected float mMoveSpeed;
 
     protected boolean mIsAutoPlaying;
 
@@ -86,7 +95,9 @@ public class Banner extends FrameLayout {
         mSelectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorSelectedSrc);
         mUnselectedDrawable = typedArray.getDrawable(R.styleable.Banner_indicatorUnselectedSrc);
         mItemSpace = typedArray.getInt(R.styleable.Banner_itemSpace, BannerConfig.ITEM_SPACE);
-        mCenterScale = typedArray.getFloat(R.styleable.Banner_centerScale, BannerConfig.SCALE);
+        mMinScale = typedArray.getFloat(R.styleable.Banner_minScale, BannerConfig.SCALE);
+        mMoveSpeed = typedArray.getFloat(R.styleable.Banner_moveSpeed, BannerConfig.DEFAULT_SPEED);
+        mMaxVisibleItemCount = typedArray.getInt(R.styleable.Banner_maxVisibleItemCount, BannerConfig.DEFAULT_ITEM_COUNT);
         if (mSelectedDrawable == null) {
             //绘制默认选中状态图形
             GradientDrawable selectedGradientDrawable = new GradientDrawable();
@@ -130,13 +141,14 @@ public class Banner extends FrameLayout {
         //recyclerView部分
         mRecyclerView = new RecyclerView(context);
         new PagerSnapHelper().attachToRecyclerView(mRecyclerView);
-        mLayoutManager = (ViewPagerLayoutManager) getLayoutManager(context, mItemSpace, orientation);
+        mLayoutManager = getLayoutManager(context, mItemSpace, orientation);
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 mCurrentIndex = mLayoutManager.getCurrentPosition();
+                Log.d("chengs","-----------"+mCurrentIndex);
                 refreshIndicator();
                 onBannerScrolled(recyclerView, dx, dy);
             }
@@ -171,7 +183,8 @@ public class Banner extends FrameLayout {
         @Override
         public boolean handleMessage(Message msg) {
             if (msg.what == WHAT_AUTO_PLAY) {
-                mRecyclerView.smoothScrollToPosition(++mCurrentIndex);
+                mCurrentIndex = mLayoutManager.getCurrentPosition();
+                mLayoutManager.scrollToPosition(++mCurrentIndex);
                 refreshIndicator();
                 mHandler.sendEmptyMessageDelayed(WHAT_AUTO_PLAY, mAutoPlayDuration);
 
@@ -198,6 +211,54 @@ public class Banner extends FrameLayout {
      */
     public Banner setInfinite(boolean isInfinite) {
         this.mIsInfinite = isInfinite;
+        mLayoutManager.setInfinite(isInfinite);
+        return this;
+    }
+
+    /**
+     * 设置Item间距
+     *
+     * @param itemSpace
+     */
+    public Banner setItemSpace(int itemSpace) {
+        this.mItemSpace = itemSpace;
+        if (mLayoutManager instanceof CarouselLayoutManager) {
+            ((CarouselLayoutManager) mLayoutManager).setItemSpace(itemSpace);
+        }
+        return this;
+    }
+
+    /**
+     * 设置移动速度
+     *
+     * @param moveSpeed
+     */
+    public Banner setMoveSpeed(float moveSpeed) {
+        this.mMoveSpeed = moveSpeed;
+        if (mLayoutManager instanceof CarouselLayoutManager) {
+            ((CarouselLayoutManager) mLayoutManager).setMoveSpeed(moveSpeed);
+        }
+        return this;
+    }
+
+    public Banner setMaxVisibleItemCount(int maxVisibleItemCount) {
+        this.mMaxVisibleItemCount = maxVisibleItemCount;
+        if (mLayoutManager instanceof CarouselLayoutManager) {
+            mLayoutManager.setMaxVisibleItemCount(maxVisibleItemCount);
+        }
+        return this;
+    }
+
+    /**
+     * 设置缩放比例
+     *
+     * @param minScale (0~1)
+     */
+    public Banner setMinScale(float minScale) {
+        this.mMinScale = minScale;
+        if (mLayoutManager instanceof CarouselLayoutManager) {
+            ((CarouselLayoutManager) mLayoutManager).setMinScale(minScale);
+        }
         return this;
     }
 
@@ -329,15 +390,18 @@ public class Banner extends FrameLayout {
      */
     protected synchronized void refreshIndicator() {
         if (mIsShowIndicator && mBannerSize > 1) {
-            mIndicatorAdapter.setPosition(mCurrentIndex);
+            mIndicatorAdapter.setPosition(mCurrentIndex % mBannerSize);
             mIndicatorAdapter.notifyDataSetChanged();
         }
     }
 
-    public LinearLayoutManager getLayoutManager(Context context, int itemSpace, int orientation) {
+    public ViewPagerLayoutManager getLayoutManager(Context context, int itemSpace, int orientation) {
         CarouselLayoutManager manager = new CarouselLayoutManager(context, itemSpace, orientation);
-        manager.setMinScale(mCenterScale);
         manager.setInfinite(mIsInfinite);
+        manager.setMoveSpeed(mMoveSpeed);
+        manager.setMinScale(mMinScale);
+        manager.setItemSpace(mItemSpace);
+        manager.setMaxVisibleItemCount(mMaxVisibleItemCount);
         return manager;
     }
 

@@ -1,5 +1,8 @@
 package com.github.chengs.banner;
 
+/**
+ * Created by Cs on 2019-05-11 .
+ */
 public class BannerConfig {
     /**
      * indicator gravity
@@ -16,6 +19,8 @@ public class BannerConfig {
     public static final int DURATION = 800;
     public static final int ITEM_SPACE = 100;
     public static final float SCALE = 0.9f;
+    public static final float DEFAULT_SPEED = 1f;
+    public static final int DEFAULT_ITEM_COUNT = -1;
     public static final boolean IS_INFINITE = true;
     public static final boolean IS_AUTO_PLAY = true;
     public static final boolean IS_SHOW_INDICATOR = true;

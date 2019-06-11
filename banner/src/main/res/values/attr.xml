@@ -16,8 +16,9 @@
         <attr name="autoPlaying"/>
         <attr name="infinite"/>
         <attr name="itemSpace" format="integer"/>
-        <attr name="centerScale" format="float"/>
+        <attr name="minScale" format="float"/>
         <attr name="moveSpeed" format="float"/>
+        <attr name="maxVisibleItemCount" format="integer"/>
         <attr name="indicatorSelectedSrc" format="color|reference"/>
         <attr name="indicatorUnselectedSrc" format="color|reference"/>
         <attr name="indicatorSpace" format="dimension|reference"/>
