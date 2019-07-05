@@ -3,8 +3,8 @@ package com.github.chengs.banner.layoutmanager;
 import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +13,7 @@ import com.github.chengs.banner.helper.OrientationHelper;
 
 import java.util.ArrayList;
 
-import static android.support.v7.widget.RecyclerView.NO_POSITION;
+import static androidx.recyclerview.widget.RecyclerView.NO_POSITION;
 
 /**
  * An implementation of {@link RecyclerView.LayoutManager} which behaves like view pager.
@@ -316,8 +316,8 @@ public abstract class ViewPagerLayoutManager extends LinearLayoutManager {
      * laid out at the end of the UI, second item is laid out before it etc.
      * <p>
      * For horizontal layouts, it depends on the layout direction.
-     * When set to true, If {@link android.support.v7.widget.RecyclerView} is LTR, than it will
-     * layout from RTL, if {@link android.support.v7.widget.RecyclerView}} is RTL, it will layout
+     * When set to true, If {@link RecyclerView} is LTR, than it will
+     * layout from RTL, if {@link RecyclerView}} is RTL, it will layout
      * from LTR.
      */
     public void setReverseLayout(boolean reverseLayout) {

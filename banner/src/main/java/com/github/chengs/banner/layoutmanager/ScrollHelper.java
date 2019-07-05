@@ -1,8 +1,7 @@
 package com.github.chengs.banner.layoutmanager;
 
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
-import com.github.chengs.banner.layoutmanager.ViewPagerLayoutManager;
 
 public class ScrollHelper {
     /* package */ static void smoothScrollToPosition(RecyclerView recyclerView, ViewPagerLayoutManager viewPagerLayoutManager, int targetPosition) {
