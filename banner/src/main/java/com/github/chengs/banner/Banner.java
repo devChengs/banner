@@ -25,6 +25,7 @@ import android.widget.FrameLayout;
 import com.github.chengs.banner.adapter.IndicatorAdapter;
 import com.github.chengs.banner.layoutmanager.CarouselLayoutManager;
 import com.github.chengs.banner.layoutmanager.ViewPagerLayoutManager;
+import com.github.chengs.banner.listener.OnScrollListener;
 
 /**
  * Created by Cs on 2019-05-11 .
@@ -58,7 +59,9 @@ public class Banner extends FrameLayout {
     protected int mIndicatorMargin;//指示器间距
 
     protected int mBannerSize = 1;
+
     protected int mCurrentIndex;
+
     protected boolean mIsPlaying;
 
     protected int mItemSpace;
@@ -74,6 +77,8 @@ public class Banner extends FrameLayout {
     private boolean mIsStart = false;
 
     protected int WHAT_AUTO_PLAY = 1000;
+
+    private OnScrollListener mOnScrollListener;
 
     public Banner(Context context) {
         super(context);
@@ -146,16 +151,18 @@ public class Banner extends FrameLayout {
 
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                mCurrentIndex = mLayoutManager.getCurrentPosition();
                 refreshIndicator();
-                onBannerScrolled(recyclerView, dx, dy);
+                if (mOnScrollListener != null) {
+                    mOnScrollListener.onBannerScrolled(recyclerView, dx, dy);
+                }
             }
 
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                mCurrentIndex = mLayoutManager.getCurrentPosition();
                 refreshIndicator();
-                onBannerScrollStateChanged(recyclerView, newState);
+                if (mOnScrollListener != null) {
+                    mOnScrollListener.onBannerScrollStateChanged(recyclerView, mLayoutManager.getCurrentPosition(), newState);
+                }
             }
         });
         LayoutParams vpLayoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -187,6 +194,9 @@ public class Banner extends FrameLayout {
                     mLayoutManager.scrollToPosition(mCurrentIndex);
                 } else {
                     mLayoutManager.scrollToPosition(++mCurrentIndex);
+                }
+                if (mOnScrollListener != null) {
+                    mOnScrollListener.onBannerScrolledPosition(mRecyclerView, mCurrentIndex);
                 }
                 refreshIndicator();
                 mHandler.sendEmptyMessageDelayed(WHAT_AUTO_PLAY, mAutoPlayDuration);
@@ -252,6 +262,10 @@ public class Banner extends FrameLayout {
         return this;
     }
 
+    public void setOnScrollListener(OnScrollListener onScrollListener) {
+        mOnScrollListener = onScrollListener;
+    }
+
     /**
      * 设置缩放比例
      *
@@ -284,7 +298,7 @@ public class Banner extends FrameLayout {
 
     public void start() {
         if (mAdapter == null) {
-            Log.i("banner", "RecyclerView Adapter Cannot be null");
+            Log.e("banner", "RecyclerView Adapter Cannot be null");
             return;
         }
         mBannerSize = mAdapter.mData.size();
@@ -310,15 +324,6 @@ public class Banner extends FrameLayout {
                 this.mIsPlaying = false;
             }
         }
-    }
-
-
-    protected void onBannerScrolled(RecyclerView recyclerView, int dx, int dy) {
-
-    }
-
-    protected void onBannerScrollStateChanged(RecyclerView recyclerView, int newState) {
-
     }
 
     @Override

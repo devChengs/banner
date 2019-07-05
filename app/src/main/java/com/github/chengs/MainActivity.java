@@ -1,20 +1,23 @@
 package com.github.chengs;
 
 import android.os.Bundle;
+import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
+import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.github.chengs.banner.Banner;
 import com.github.chengs.banner.BaseBannerAdapter;
 import com.github.chengs.banner.BaseViewHolder;
+import com.github.chengs.banner.listener.OnScrollListener;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements BaseBannerAdapter.OnItemChildClickListener {
+public class MainActivity extends AppCompatActivity implements BaseBannerAdapter.OnItemChildClickListener, OnScrollListener {
 
 
     @Override
@@ -22,6 +25,7 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Banner recyclerBanner =  findViewById(R.id.recycler);
+        recyclerBanner.setOnScrollListener(this);
 //        Banner bannerVertical =  findViewById(R.id.recycler_ver);
 
         List<String> list = new ArrayList<>();
@@ -42,6 +46,22 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         Toast.makeText(this,String.format("第%d个",position),Toast.LENGTH_LONG).show();
     }
 
+    @Override
+    public void onBannerScrolledPosition(RecyclerView recyclerView, int position) {
+        Log.d("chengs","position###"+position);
+    }
+
+    @Override
+    public void onBannerScrolled(RecyclerView recyclerView, int dx, int dy) {
+        Log.d("chengs","dx="+dx+"--dy="+dy);
+
+    }
+
+    @Override
+    public void onBannerScrollStateChanged(RecyclerView recyclerView,int position, int newState) {
+        Log.d("chengs","newState="+newState+",position---"+position);
+    }
+
 
     class Adapter  extends BaseBannerAdapter<String, BaseViewHolder>{
 
@@ -53,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         protected void convert(BaseViewHolder helper, String item) {
             Glide.with(MainActivity.this).load(item).into((ImageView) helper.getView(R.id.image));
             helper.setText(R.id.txt,"getLayoutPosition="+helper.getLayoutPosition()+"         getAdapterPosition="+helper.getAdapterPosition());
+            Log.d("chengs","getLayoutPosition="+helper.getLayoutPosition()+"         getAdapterPosition="+helper.getAdapterPosition());
         }
     }
 }
