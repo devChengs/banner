@@ -198,7 +198,7 @@ public abstract class BaseBannerAdapter<T, K extends BaseViewHolder> extends Rec
      *
      * @param position
      * @param item
-     * @deprecated use {@link #addData(int, Object)} instead
+     * @deprecated use {@link #addData(int, T)} instead
      */
     @Deprecated
     public void add(@IntRange(from = 0) int position, @NonNull T item) {

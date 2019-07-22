@@ -65,7 +65,7 @@ public class LoopAdapterWrapper extends PagerAdapter {
         if (onLoadImageViewListener != null) {
             child = onLoadImageViewListener.createImageView(context, isAnimation);
             ImageView imageView = child.findViewById(R.id.iv_loop_banner);
-            onLoadImageViewListener.onLoadImageView(imageView, bannerInfo.data);
+            onLoadImageViewListener.onLoadImageView(imageView, bannerInfo.getImage());
             container.addView(child);
             container.setBackgroundColor(context.getResources().getColor(android.R.color.transparent));
             child.setOnClickListener(new View.OnClickListener() {
