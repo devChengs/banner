@@ -5,13 +5,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-/**
- * 工具类
- *
- * @author Edwin.Wu
- * @version 2016/06/13 下午10:14
- * @since JDK1.8
- */
+
 public class Tools {
     /**
      * 根据手机的分辨率从 dp 的单位 转成为 px(像素)
