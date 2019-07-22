@@ -25,9 +25,22 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Banner recyclerBanner =  findViewById(R.id.recycler);
-        recyclerBanner.setOnScrollListener(this);
-//        Banner bannerVertical =  findViewById(R.id.recycler_ver);
+        recyclerBanner.setOnScrollListener(new OnScrollListener() {
+            @Override
+            public void onBannerScrolledPosition(RecyclerView recyclerView, int position) {
 
+            }
+
+            @Override
+            public void onBannerScrolled(RecyclerView recyclerView, int dx, int dy) {
+
+            }
+
+            @Override
+            public void onBannerScrollStateChanged(RecyclerView recyclerView, int position, int newState) {
+
+            }
+        });
         List<String> list = new ArrayList<>();
 
         list.add("https://gratisography.com/thumbnails/gratisography-sleeping-coffee-beans-thumbnail.jpg");

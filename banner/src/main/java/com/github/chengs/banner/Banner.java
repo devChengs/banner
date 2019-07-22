@@ -26,7 +26,6 @@ import com.github.chengs.banner.adapter.IndicatorAdapter;
 import com.github.chengs.banner.layoutmanager.CarouselLayoutManager;
 import com.github.chengs.banner.layoutmanager.ViewPagerLayoutManager;
 import com.github.chengs.banner.listener.OnScrollListener;
-
 /**
  * Created by Cs on 2019-05-11 .
  */
@@ -153,6 +152,7 @@ public class Banner extends FrameLayout {
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 refreshIndicator();
                 if (mOnScrollListener != null) {
+
                     mOnScrollListener.onBannerScrolled(recyclerView, dx, dy);
                 }
             }
