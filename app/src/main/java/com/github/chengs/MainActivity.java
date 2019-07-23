@@ -9,6 +9,8 @@ import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
+import com.bumptech.glide.request.RequestOptions;
 import com.github.chengs.banner.Banner;
 import com.github.chengs.banner.BaseBannerAdapter;
 import com.github.chengs.banner.BaseViewHolder;
@@ -79,16 +81,20 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         ArrayList<BannerData> bannerInfos = new ArrayList<>();
         List<Object> bgList = new ArrayList<>();
 
-        bannerInfos.add(new BannerData("first",R.mipmap.banner_1));
-        bannerInfos.add(new BannerData("second",R.mipmap.banner_2 ));
-        bgList.add(R.mipmap.banner_bg1);
-        bgList.add(R.mipmap.banner_bg2);
+        bannerInfos.add(new BannerData("first","http://shop.jiujiuwu995.com/public/upload/temp/2019/07-02/9cd6076b3949e8a747f116823b1d34cb.jpg"));
+        bannerInfos.add(new BannerData("second","http://shop.jiujiuwu995.com/public/upload/temp/2019/07-02/4f7ffae28b2ce6f4c895fd3cdb135de1.jpg" ));
+        bannerInfos.add(new BannerData("three","http://shop.jiujiuwu995.com/public/upload/temp/2019/06-28/b9b4b378213b075a48da3927a9ec7e39.jpg" ));
         // 设置监听
         loopLayout.setOnLoadImageViewListener(new OnDefaultImageViewLoader() {
             @Override
             public void onLoadImageView(ImageView view, Object object) {
+                //设置图片圆角角度
+                RoundedCorners roundedCorners= new RoundedCorners(10);
+                //通过RequestOptions扩展功能,override:采样率,因为ImageView就这么大,可以压缩图片,降低内存消耗
+                RequestOptions options= RequestOptions.bitmapTransform(roundedCorners).override(300, 300);
                 Glide.with(view.getContext())
                         .load(object)
+                        .apply(options)
                         .into(view);
             }
         });
@@ -146,9 +152,9 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
     class BannerData implements BannerInfo{
 
         public String title;
-        public int res;
+        public Object res;
 
-        public BannerData(String title, int res) {
+        public BannerData(String title, Object res) {
             this.title = title;
             this.res = res;
         }

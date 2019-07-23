@@ -9,18 +9,18 @@
 
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
                  android:layout_width="match_parent"
-                 android:layout_height="240dp">
+                 android:layout_height="300dp">
 
         <com.github.chengs.banner.view.BannerBgContainer
                 android:id="@+id/banner_bg_container"
                 android:layout_width="match_parent"
-                android:layout_height="240dp" />
+                android:layout_height="300dp" />
 
 
         <com.github.chengs.banner.view.LoopLayout
                 android:id="@+id/loop_layout"
                 android:layout_width="match_parent"
-                android:layout_height="168dp"
+                android:layout_height="128dp"
                 android:layout_gravity="bottom" />
     </FrameLayout>
 

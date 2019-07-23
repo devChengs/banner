@@ -44,7 +44,7 @@ public class BannerBgContainer extends RelativeLayout {
     public void setBannerBackBg(Context context, List bgUrlList) {
         bannerBgViews.clear();
         this.removeAllViews();
-        LayoutParams layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT, DensityUtil.dp2px(240));
+        LayoutParams layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         layoutParams.leftMargin = -DensityUtil.dp2px(20);
         layoutParams.rightMargin = -DensityUtil.dp2px(20);
         for (Object urlImageView : bgUrlList) {
