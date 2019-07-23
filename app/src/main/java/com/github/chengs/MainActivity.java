@@ -12,12 +12,19 @@ import com.bumptech.glide.Glide;
 import com.github.chengs.banner.Banner;
 import com.github.chengs.banner.BaseBannerAdapter;
 import com.github.chengs.banner.BaseViewHolder;
+import com.github.chengs.banner.bean.BannerInfo;
+import com.github.chengs.banner.listener.OnBannerItemClickListener;
+import com.github.chengs.banner.listener.OnDefaultImageViewLoader;
 import com.github.chengs.banner.listener.OnScrollListener;
+import com.github.chengs.banner.view.BannerBgContainer;
+import com.github.chengs.banner.view.LoopLayout;
+import com.github.chengs.banner.widget.IndicatorLocation;
+import com.github.chengs.banner.widget.LoopStyle;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements BaseBannerAdapter.OnItemChildClickListener, OnScrollListener {
+public class MainActivity extends AppCompatActivity implements BaseBannerAdapter.OnItemChildClickListener, OnScrollListener, OnBannerItemClickListener {
 
 
     @Override
@@ -52,6 +59,47 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         adapter.setOnItemChildClickListener(this);
         recyclerBanner.setAdapter(adapter)
                 .setInfinite(true).setItemSpace(80).setMinScale(0.8f).setAutoPlaying(true).start();
+
+
+        initLoopBanner();
+    }
+
+    private void initLoopBanner() {
+        BannerBgContainer bannerBgContainer;
+        LoopLayout loopLayout;
+        loopLayout = findViewById(R.id.loop_layout);
+        bannerBgContainer = findViewById(R.id.banner_bg_container);
+        loopLayout.setLoop_ms(3000);//轮播的速度(毫秒)
+        loopLayout.setLoop_duration(400);//滑动的速率(毫秒)
+        loopLayout.setScaleAnimation(true);// 设置是否需要动画
+        loopLayout.setLoop_style(LoopStyle.Empty);//轮播的样式-默认empty
+        loopLayout.setIndicatorLocation(IndicatorLocation.Center);//指示器位置-中Center
+        loopLayout.initializeData(this);
+        // 准备数据
+        ArrayList<BannerData> bannerInfos = new ArrayList<>();
+        List<Object> bgList = new ArrayList<>();
+
+        bannerInfos.add(new BannerData("first",R.mipmap.banner_1));
+        bannerInfos.add(new BannerData("second",R.mipmap.banner_2 ));
+        bgList.add(R.mipmap.banner_bg1);
+        bgList.add(R.mipmap.banner_bg2);
+        // 设置监听
+        loopLayout.setOnLoadImageViewListener(new OnDefaultImageViewLoader() {
+            @Override
+            public void onLoadImageView(ImageView view, Object object) {
+                Glide.with(view.getContext())
+                        .load(object)
+                        .into(view);
+            }
+        });
+        loopLayout.setOnBannerItemClickListener(this);
+        if (bannerInfos.size() == 0) {
+            return;
+        }
+        loopLayout.setLoopData(bannerInfos);
+        bannerBgContainer.setBannerBackBg(this, bannerInfos);
+        loopLayout.setBannerBgContainer(bannerBgContainer);
+        loopLayout.startLoop();
     }
 
     @Override
@@ -75,6 +123,11 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
         Log.d("chengs","newState="+newState+",position---"+position);
     }
 
+    @Override
+    public void onBannerClick(int index, ArrayList<BannerInfo> banner) {
+
+    }
+
 
     class Adapter  extends BaseBannerAdapter<String, BaseViewHolder>{
 
@@ -87,6 +140,32 @@ public class MainActivity extends AppCompatActivity implements BaseBannerAdapter
             Glide.with(MainActivity.this).load(item).into((ImageView) helper.getView(R.id.image));
             helper.setText(R.id.txt,"getLayoutPosition="+helper.getLayoutPosition()+"         getAdapterPosition="+helper.getAdapterPosition());
             Log.d("chengs","getLayoutPosition="+helper.getLayoutPosition()+"         getAdapterPosition="+helper.getAdapterPosition());
+        }
+    }
+
+    class BannerData implements BannerInfo{
+
+        public String title;
+        public int res;
+
+        public BannerData(String title, int res) {
+            this.title = title;
+            this.res = res;
+        }
+
+        @Override
+        public Object getBannerImage() {
+            return res;
+        }
+
+        @Override
+        public Object getBannerBackground() {
+            return res;
+        }
+
+        @Override
+        public String getTitle() {
+            return "";
         }
     }
 }

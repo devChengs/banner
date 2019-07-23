@@ -13,15 +13,16 @@ import com.github.chengs.banner.listener.OnLoadImageViewListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
 /**
  * LoopAdapterWrapper
  */
-public class LoopAdapterWrapper extends PagerAdapter {
+public class LoopAdapterWrapper<T> extends PagerAdapter {
     private final Context context;
-    private final ArrayList<BannerInfo> bannerInfos;//banner data
+    private final List<T> mData;//banner data
     private final OnBannerItemClickListener onBannerItemClickListener;
     private final OnLoadImageViewListener onLoadImageViewListener;
 
@@ -32,9 +33,9 @@ public class LoopAdapterWrapper extends PagerAdapter {
         isAnimation = animation;
     }
 
-    public LoopAdapterWrapper(Context context, ArrayList<BannerInfo> bannerInfos, OnBannerItemClickListener onBannerItemClickListener, OnLoadImageViewListener onLoadImageViewListener) {
+    public LoopAdapterWrapper(Context context, List<T> data, OnBannerItemClickListener onBannerItemClickListener, OnLoadImageViewListener onLoadImageViewListener) {
         this.context = context;
-        this.bannerInfos = bannerInfos;
+        this.mData = data;
         this.onBannerItemClickListener = onBannerItemClickListener;
         this.onLoadImageViewListener = onLoadImageViewListener;
     }
@@ -59,20 +60,20 @@ public class LoopAdapterWrapper extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        final int index = position % bannerInfos.size();
-        final BannerInfo bannerInfo = bannerInfos.get(index);
+        final int index = position % mData.size();
+        final BannerInfo bannerInfo = (BannerInfo) mData.get(index);
         View child = null;
         if (onLoadImageViewListener != null) {
             child = onLoadImageViewListener.createImageView(context, isAnimation);
             ImageView imageView = child.findViewById(R.id.iv_loop_banner);
-            onLoadImageViewListener.onLoadImageView(imageView, bannerInfo.getImage());
+            onLoadImageViewListener.onLoadImageView(imageView, bannerInfo.getBannerImage());
             container.addView(child);
             container.setBackgroundColor(context.getResources().getColor(android.R.color.transparent));
             child.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     if (onBannerItemClickListener != null)
-                        onBannerItemClickListener.onBannerClick(index, bannerInfos);
+                        onBannerItemClickListener.onBannerClick(index, (ArrayList<BannerInfo>) mData);
 
                 }
             });

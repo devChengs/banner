@@ -1,4 +1,4 @@
-package com.github.chengs.banner.widget;
+package com.github.chengs.banner.view;
 
 import android.animation.Animator;
 import android.animation.AnimatorSet;
@@ -31,12 +31,12 @@ import com.github.chengs.banner.widget.LoopScroller;
 import com.github.chengs.banner.widget.LoopStyle;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 滚动视图布局 内嵌ViewPager
  */
-public class LoopLayout extends RelativeLayout {
+public class LoopLayout<T> extends RelativeLayout {
 
     private ViewPager loopViewPager;
     private LinearLayout indicatorLayout;
@@ -46,7 +46,7 @@ public class LoopLayout extends RelativeLayout {
     private LoopAdapterWrapper loopAdapterWrapper;
     private int totalDistance;//Little red dot all the distance to move
     private int size = Tools.dip2px(getContext(), 8);//The size of the set point;
-    private ArrayList<BannerInfo> bannerInfos;//banner data
+    private List<T> bannerInfo;//banner data
     private ImageView animIndicator;//Little red dot on the move
     private ImageView[] indicators;//Initializes the white dots
     @DrawableRes
@@ -162,7 +162,6 @@ public class LoopLayout extends RelativeLayout {
     @SuppressLint("ClickableViewAccessibility")
     public void initializeData(Context context) {
         initializeView();
-
         if (loop_duration > loop_ms) // 防止花屏
             loop_duration = loop_ms;
 
@@ -205,11 +204,11 @@ public class LoopLayout extends RelativeLayout {
     /**
      * initialize the Data
      *
-     * @param bannerInfos BannerInfo
+     * @param data BannerInfo
      */
-    public void setLoopData(ArrayList<BannerInfo> bannerInfos) {
-        if (bannerInfos != null && bannerInfos.size() > 0) {
-            this.bannerInfos = bannerInfos;
+    public void setLoopData(List<T> data) {
+        if (data != null && data.size() > 0) {
+            this.bannerInfo = data;
         } else {
             return;
         }
@@ -220,17 +219,17 @@ public class LoopLayout extends RelativeLayout {
         InitIndicator();
         InitLittleRed();
         totalDistance = 2 * size * (indicators.length - 1);
-        loopAdapterWrapper = new LoopAdapterWrapper(getContext(), bannerInfos, onBannerItemClickListener, onLoadImageViewListener);
+        loopAdapterWrapper = new LoopAdapterWrapper(getContext(), data, onBannerItemClickListener, onLoadImageViewListener);
         loopAdapterWrapper.setAnimation(isScaleAnimation);
         loopViewPager.setAdapter(loopAdapterWrapper);
         loopViewPager.addOnPageChangeListener(new ViewPageChangeListener());
-        int index = Short.MAX_VALUE / 2 - (Short.MAX_VALUE / 2) % bannerInfos.size();
+        int index = Short.MAX_VALUE / 2 - (Short.MAX_VALUE / 2) % data.size();
         loopViewPager.setCurrentItem(index);
     }
 
     private void InitIndicator() {
         indicatorLayout.removeAllViews();
-        indicators = new ImageView[bannerInfos.size()];
+        indicators = new ImageView[bannerInfo.size()];
         for (int i = 0; i < indicators.length; i++) {
             indicators[i] = new ImageView(getContext());
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
@@ -375,7 +374,7 @@ public class LoopLayout extends RelativeLayout {
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
             if (loopAdapterWrapper.getCount() > 0) {
-                float length = ((position % bannerInfos.size()) + positionOffset) / (bannerInfos.size() - 1);
+                float length = ((position % bannerInfo.size()) + positionOffset) / (bannerInfo.size() - 1);
                 if (length >= 1) {
                 } else {
                     float path = length * totalDistance;
@@ -409,14 +408,13 @@ public class LoopLayout extends RelativeLayout {
                 }
             }
 
-            if (bannerBgContainer == null || bannerBgContainer.getBannerBgViews().size() == 1 || bannerInfos.size() == 1) {// 判断如果是一张背景图片的话不动
+            if (bannerBgContainer == null || bannerBgContainer.getBannerBgViews().size() == 1 || bannerInfo.size() == 1) {// 判断如果是一张背景图片的话不动
                 return;
             }
             if (mViewPagerIndex == position) {
                 if (bannerBgContainer.getBannerBgViews().size() > position % bannerBgContainer.getBannerBgViews().size() + 1) {
                     bannerBgContainer.getBannerBgViews().get(position % bannerBgContainer.getBannerBgViews().size() + 1).bringToFront();
-                    bannerBgContainer.getBannerBgViews().get(position % bannerBgContainer.getBannerBgViews().size() + 1)
-                            .hideClipAnimation((positionOffset - reduceValue) * upValue > 1 ? 1 : (positionOffset - reduceValue) * upValue);
+                    bannerBgContainer.getBannerBgViews().get(position % bannerBgContainer.getBannerBgViews().size() + 1).hideClipAnimation((positionOffset - reduceValue) * upValue > 1 ? 1 : (positionOffset - reduceValue) * upValue);
                 } else if (bannerBgContainer.getBannerBgViews().size() == position % bannerBgContainer.getBannerBgViews().size() + 1) {
                     bannerBgContainer.getBannerBgViews().get(0).bringToFront();
                     bannerBgContainer.getBannerBgViews().get(0)
@@ -435,10 +433,10 @@ public class LoopLayout extends RelativeLayout {
 
         @Override
         public void onPageSelected(int position) {
-            int i = position % bannerInfos.size();
+            int i = position % bannerInfo.size();
             if (i == 0) {
                 animIndicator.setTranslationX(totalDistance * 0.0f);
-            } else if (i == bannerInfos.size() - 1) {
+            } else if (i == bannerInfo.size() - 1) {
                 animIndicator.setTranslationX(totalDistance * 1.0f);
             }
             mViewPagerIndex = position - 1;

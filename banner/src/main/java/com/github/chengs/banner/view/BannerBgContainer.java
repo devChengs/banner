@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.RelativeLayout;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
+import com.github.chengs.banner.bean.BannerInfo;
 import com.github.chengs.banner.util.DensityUtil;
 
 import java.util.ArrayList;
@@ -39,16 +41,17 @@ public class BannerBgContainer extends RelativeLayout {
      * @param context
      * @param bgUrlList
      */
-    public void setBannerBackBg(Context context, List<Object> bgUrlList) {
+    public void setBannerBackBg(Context context, List bgUrlList) {
         bannerBgViews.clear();
         this.removeAllViews();
         LayoutParams layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT, DensityUtil.dp2px(240));
         layoutParams.leftMargin = -DensityUtil.dp2px(20);
         layoutParams.rightMargin = -DensityUtil.dp2px(20);
         for (Object urlImageView : bgUrlList) {
+            BannerInfo bannerInfo = (BannerInfo) urlImageView;
             BannerBgView bannerBgView = new BannerBgView(context);
             bannerBgView.setLayoutParams(layoutParams);
-            Glide.with(context).load(urlImageView).into(bannerBgView.getImageView());
+            Glide.with(context).load(bannerInfo.getBannerBackground()).into(bannerBgView.getImageView());
             bannerBgViews.add(bannerBgView);
             this.addView(bannerBgView);
         }
